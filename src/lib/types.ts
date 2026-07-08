@@ -13,4 +13,5 @@ export interface Deployment {
   Status: DeploymentStatus;
   CreatedAt: string;
   Port: number | null;
+  ContainerRunning: boolean;
 }

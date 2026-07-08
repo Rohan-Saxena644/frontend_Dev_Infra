@@ -52,6 +52,16 @@ export const api = {
     }),
 
   listDeployments: () => request<Deployment[]>("/deployments"),
+
+  deleteProject: (projectId: number) =>
+    request<void>(`/projects/${projectId}`, {
+      method: "DELETE",
+    }),
+
+  restartDeployment: (deploymentId: number) =>
+    request<Deployment>(`/deployments/${deploymentId}/restart`, {
+      method: "POST",
+    }),
 };
 
 export { ApiError };
