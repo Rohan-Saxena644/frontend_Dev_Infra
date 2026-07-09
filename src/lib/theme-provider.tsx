@@ -12,6 +12,7 @@ type Theme = "dark" | "light";
 
 interface ThemeContextValue {
   theme: Theme;
+  mounted: boolean;
   toggleTheme: () => void;
 }
 
@@ -19,21 +20,33 @@ const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
 
 const STORAGE_KEY = "devinfra-theme";
 
+function getStoredTheme(): Theme {
+  const stored = window.localStorage.getItem(STORAGE_KEY);
+  return stored === "light" || stored === "dark" ? stored : "dark";
+}
+
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setTheme] = useState<Theme>("dark");
+  const [mounted, setMounted] = useState(false);
 
-  // Read persisted preference on mount. Default stays "dark" if nothing
-  // is stored, matching the inline script in layout.tsx that prevents
-  // a flash of the wrong theme before hydration.
   useEffect(() => {
-    const stored = window.localStorage.getItem(STORAGE_KEY) as Theme | null;
-    if (stored === "light" || stored === "dark") {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- reading a one-time persisted preference on mount, not derived from props/state
-      setTheme(stored);
-    }
+    let cancelled = false;
+
+    queueMicrotask(() => {
+      if (cancelled) return;
+
+      setTheme(getStoredTheme());
+      setMounted(true);
+    });
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
+    if (!mounted) return;
+
     const root = document.documentElement;
     if (theme === "light") {
       root.setAttribute("data-theme", "light");
@@ -41,14 +54,14 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       root.removeAttribute("data-theme");
     }
     window.localStorage.setItem(STORAGE_KEY, theme);
-  }, [theme]);
+  }, [mounted, theme]);
 
   const toggleTheme = () => {
     setTheme((prev) => (prev === "dark" ? "light" : "dark"));
   };
 
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme }}>
+    <ThemeContext.Provider value={{ theme, mounted, toggleTheme }}>
       {children}
     </ThemeContext.Provider>
   );

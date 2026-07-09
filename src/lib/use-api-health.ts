@@ -10,13 +10,20 @@ export function useApiHealth(pollMs = 15000) {
 
   useEffect(() => {
     let cancelled = false;
+    let failures = 0;
 
     const check = async () => {
       try {
         await api.listProjects();
-        if (!cancelled) setStatus("online");
+        failures = 0;
+        if (!cancelled) {
+          setStatus("online");
+        }
       } catch {
-        if (!cancelled) setStatus("offline");
+        failures += 1;
+        if (!cancelled && failures >= 2) {
+          setStatus("offline");
+        }
       }
     };
 
