@@ -146,6 +146,10 @@ export default function AuthPage() {
           <UserRound size={15} />
           Continue as demo
         </button>
+
+        <p className="mt-3 rounded-md border border-border bg-background px-3 py-2 font-mono text-xs text-muted">
+          demo@gmail.com / demo123
+        </p>
       </div>
     </div>
   );
