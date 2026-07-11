@@ -3,6 +3,17 @@ export interface Project {
   Name: string;
   RepoUrl: string;
   CreatedAt: string;
+  UserID?: number;
+}
+
+export interface User {
+  id: number;
+  email: string;
+}
+
+export interface AuthResponse {
+  token: string;
+  user: User;
 }
 
 export type DeploymentStatus = "queued" | "running" | "success" | "failed";

@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, ExternalLink, GitBranch, Rocket, Trash2 } from "lucide-react";
 import { api, ApiError } from "@/lib/api";
+import { useAuth } from "@/lib/auth";
 import type { Deployment, Project } from "@/lib/types";
 import { DeploymentStepper } from "@/components/DeploymentStepper";
 import { DeploymentRow } from "@/components/DeploymentRow";
@@ -62,6 +63,7 @@ function DeploymentGroup({
 export default function ProjectDetailPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
+  const { token, loading, logout } = useAuth();
   const projectId = Number(params.id);
 
   const [project, setProject] = useState<Project | null>(null);
@@ -76,6 +78,12 @@ export default function ProjectDetailPage() {
       const p = await api.getProject(projectId);
       setProject(p);
     } catch (err) {
+      if (err instanceof ApiError && err.status === 401) {
+        logout();
+        router.replace("/auth");
+        return;
+      }
+
       setError(
         err instanceof ApiError
           ? err.message
@@ -93,6 +101,12 @@ export default function ProjectDetailPage() {
       setDeployments(mine);
       return mine;
     } catch (err) {
+      if (err instanceof ApiError && err.status === 401) {
+        logout();
+        router.replace("/auth");
+        return [];
+      }
+
       setError(
         err instanceof ApiError
           ? err.message
@@ -116,6 +130,13 @@ export default function ProjectDetailPage() {
   };
 
   useEffect(() => {
+    if (loading) return;
+
+    if (!token) {
+      router.replace("/auth");
+      return;
+    }
+
     if (!projectId) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- standard fetch-on-mount; data comes from an external API, not derivable from existing state
     loadProject();
@@ -128,7 +149,7 @@ export default function ProjectDetailPage() {
       if (pollRef.current) clearInterval(pollRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projectId]);
+  }, [projectId, loading, token]);
 
   const handleDeploy = async () => {
     setDeploying(true);
@@ -138,6 +159,12 @@ export default function ProjectDetailPage() {
       await loadDeployments();
       pollUntilSettled();
     } catch (err) {
+      if (err instanceof ApiError && err.status === 401) {
+        logout();
+        router.replace("/auth");
+        return;
+      }
+
       setError(
         err instanceof ApiError
           ? `Couldn't start the deployment: ${err.message}`
@@ -149,8 +176,22 @@ export default function ProjectDetailPage() {
   };
 
   const handleDelete = async () => {
-    await api.deleteProject(projectId);
-    router.push("/");
+    try {
+      await api.deleteProject(projectId);
+      router.push("/");
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 401) {
+        logout();
+        router.replace("/auth");
+        return;
+      }
+
+      setError(
+        err instanceof ApiError
+          ? `Couldn't delete the project: ${err.message}`
+          : "Couldn't reach the API. Check that the backend is running."
+      );
+    }
   };
 
   const latest = deployments?.[0];
@@ -158,6 +199,15 @@ export default function ProjectDetailPage() {
   const { running, stopped, history } = deployments
     ? groupDeployments(deployments)
     : { running: [], stopped: [], history: [] };
+
+  if (loading || !token) {
+    return (
+      <div className="mx-auto max-w-3xl px-4 py-10">
+        <div className="mb-6 h-5 w-24 animate-pulse rounded bg-surface" />
+        <div className="h-24 animate-pulse rounded-lg border border-border bg-surface" />
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">

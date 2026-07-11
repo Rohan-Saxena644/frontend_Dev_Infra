@@ -1,35 +1,68 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
 import { api, ApiError } from "@/lib/api";
+import { useAuth } from "@/lib/auth";
 import type { Project } from "@/lib/types";
 import { ProjectCard } from "@/components/ProjectCard";
 import { EmptyState } from "@/components/EmptyState";
 import { NewProjectDialog } from "@/components/NewProjectDialog";
 
 export default function DashboardPage() {
+  const router = useRouter();
+  const { token, loading, logout } = useAuth();
+
   const [projects, setProjects] = useState<Project[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
 
   useEffect(() => {
+    if (loading) return;
+
+    if (!token) {
+      router.replace("/auth");
+      return;
+    }
+
     api
       .listProjects()
       .then(setProjects)
       .catch((err) => {
+        if (err instanceof ApiError && err.status === 401) {
+          logout();
+          router.replace("/auth");
+          return;
+        }
+
         setError(
           err instanceof ApiError
             ? err.message
             : "Couldn't reach the API. Check that the backend is running."
         );
       });
-  }, []);
+  }, [loading, logout, router, token]);
 
   const handleCreated = (project: Project) => {
     setProjects((prev) => (prev ? [project, ...prev] : [project]));
     setDialogOpen(false);
   };
+
+  if (loading || !token) {
+    return (
+      <div className="mx-auto max-w-5xl px-4 py-10">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          {[0, 1, 2].map((i) => (
+            <div
+              key={i}
+              className="h-[88px] animate-pulse rounded-lg border border-border bg-surface"
+            />
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-10">

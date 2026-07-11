@@ -5,10 +5,15 @@ import { api } from "./api";
 
 export type ApiStatus = "checking" | "online" | "offline";
 
-export function useApiHealth(pollMs = 15000) {
+export function useApiHealth(pollMs = 15000, enabled = true) {
   const [status, setStatus] = useState<ApiStatus>("checking");
 
   useEffect(() => {
+    if (!enabled) {
+      queueMicrotask(() => setStatus("checking"));
+      return;
+    }
+
     let cancelled = false;
     let failures = 0;
 
@@ -33,7 +38,7 @@ export function useApiHealth(pollMs = 15000) {
       cancelled = true;
       clearInterval(interval);
     };
-  }, [pollMs]);
+  }, [pollMs, enabled]);
 
   return status;
 }
