@@ -1,5 +1,11 @@
 import { getStoredToken } from "./auth-storage";
-import type { AuthResponse, Deployment, Project } from "./types";
+import type {
+  AuthResponse,
+  Deployment,
+  DeploymentLogsResponse,
+  EnvironmentKeysResponse,
+  Project,
+} from "./types";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
 
@@ -59,6 +65,28 @@ export const api = {
 
   getProject: (id: number) => request<Project>(`/projects/${id}`),
 
+  getProjectEnvironment: (projectId: number) =>
+    request<EnvironmentKeysResponse>(`/projects/${projectId}/environment`),
+
+  setProjectEnvironmentVariable: (
+    projectId: number,
+    name: string,
+    value: string
+  ) =>
+    request<void>(
+      `/projects/${projectId}/environment/${encodeURIComponent(name)}`,
+      {
+        method: "PUT",
+        body: JSON.stringify({ value }),
+      }
+    ),
+
+  deleteProjectEnvironmentVariable: (projectId: number, name: string) =>
+    request<void>(
+      `/projects/${projectId}/environment/${encodeURIComponent(name)}`,
+      { method: "DELETE" }
+    ),
+
   createProject: (name: string, repoUrl: string) =>
     request<Project>("/projects", {
       method: "POST",
@@ -84,6 +112,14 @@ export const api = {
     request<Deployment>(`/deployments/${deploymentId}/restart`, {
       method: "POST",
     }),
+
+  stopDeployment: (deploymentId: number) =>
+    request<Deployment>(`/deployments/${deploymentId}/stop`, {
+      method: "POST",
+    }),
+
+  getDeploymentLogs: (deploymentId: number) =>
+    request<DeploymentLogsResponse>(`/deployments/${deploymentId}/logs`),
 };
 
 export { ApiError };

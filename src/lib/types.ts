@@ -25,4 +25,13 @@ export interface Deployment {
   CreatedAt: string;
   Port: number | null;
   ContainerRunning: boolean;
+  DeploymentType: "dockerfile" | "compose";
+}
+
+export interface DeploymentLogsResponse {
+  logs: string;
+}
+
+export interface EnvironmentKeysResponse {
+  keys: string[];
 }

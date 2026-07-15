@@ -10,6 +10,7 @@ import type { Deployment, Project } from "@/lib/types";
 import { DeploymentStepper } from "@/components/DeploymentStepper";
 import { DeploymentRow } from "@/components/DeploymentRow";
 import { ConfirmDeleteDialog } from "@/components/ConfirmDeleteDialog";
+import { EnvironmentVariables } from "@/components/EnvironmentVariables";
 import { deployedAppUrl } from "@/lib/deployed-app-url";
 
 const ACTIVE_STATUSES = new Set(["queued", "running"]);
@@ -52,7 +53,7 @@ function DeploymentGroup({
             key={d.ID}
             className={i !== deployments.length - 1 ? "border-b border-border" : ""}
           >
-            <DeploymentRow deployment={d} onRestarted={onChanged} />
+            <DeploymentRow deployment={d} onChanged={onChanged} />
           </div>
         ))}
       </div>
@@ -261,6 +262,8 @@ export default function ProjectDetailPage() {
           </div>
         </div>
       )}
+
+      {project && <EnvironmentVariables projectId={projectId} />}
 
       {latest && (
         <div className="mb-8 rounded-lg border border-border bg-surface p-5">
