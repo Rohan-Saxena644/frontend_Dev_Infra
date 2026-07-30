@@ -96,7 +96,7 @@ export function NewProjectDialog({
               className="w-full rounded-md border border-border bg-background px-3 py-2 font-mono text-sm text-foreground placeholder:text-muted-foreground focus:border-accent"
             />
             <p className="text-xs text-muted-foreground">
-              Must be public, or include a token, and contain a Dockerfile.
+              Must be public and contain a Dockerfile or supported Compose file.
             </p>
           </div>
 

@@ -6,6 +6,7 @@ const STYLES: Record<DeploymentStatus, string> = {
   running: "text-warning bg-warning-bg border-warning/30",
   success: "text-success bg-success-bg border-success/30",
   failed: "text-error bg-error-bg border-error/30",
+  expired: "text-muted bg-surface-hover border-border",
 };
 
 export function StatusBadge({ status }: { status: DeploymentStatus }) {

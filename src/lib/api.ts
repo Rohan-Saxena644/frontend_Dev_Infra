@@ -1,6 +1,4 @@
-import { getStoredToken } from "./auth-storage";
 import type {
-  AuthResponse,
   Deployment,
   DeploymentLogsResponse,
   EnvironmentKeysResponse,
@@ -21,11 +19,6 @@ class ApiError extends Error {
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const headers = new Headers(options?.headers);
   headers.set("Content-Type", "application/json");
-
-  const token = getStoredToken();
-  if (token) {
-    headers.set("Authorization", `Bearer ${token}`);
-  }
 
   const res = await fetch(`${API_URL}${path}`, {
     ...options,
@@ -48,18 +41,6 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 }
 
 export const api = {
-  signup: (email: string, password: string) =>
-    request<AuthResponse>("/auth/signup", {
-      method: "POST",
-      body: JSON.stringify({ email, password }),
-    }),
-
-  login: (email: string, password: string) =>
-    request<AuthResponse>("/auth/login", {
-      method: "POST",
-      body: JSON.stringify({ email, password }),
-    }),
-
   listProjects: () =>
     request<Project[] | null>("/projects").then((projects) => projects ?? []),
 

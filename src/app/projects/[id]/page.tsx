@@ -5,7 +5,6 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, ExternalLink, GitBranch, Rocket, Trash2 } from "lucide-react";
 import { api, ApiError } from "@/lib/api";
-import { useAuth } from "@/lib/auth";
 import type { Deployment, Project } from "@/lib/types";
 import { DeploymentStepper } from "@/components/DeploymentStepper";
 import { DeploymentRow } from "@/components/DeploymentRow";
@@ -64,7 +63,6 @@ function DeploymentGroup({
 export default function ProjectDetailPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
-  const { token, loading, logout } = useAuth();
   const projectId = Number(params.id);
 
   const [project, setProject] = useState<Project | null>(null);
@@ -73,18 +71,13 @@ export default function ProjectDetailPage() {
   const [deploying, setDeploying] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const refreshRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const loadProject = async () => {
     try {
       const p = await api.getProject(projectId);
       setProject(p);
     } catch (err) {
-      if (err instanceof ApiError && err.status === 401) {
-        logout();
-        router.replace("/auth");
-        return;
-      }
-
       setError(
         err instanceof ApiError
           ? err.message
@@ -102,12 +95,6 @@ export default function ProjectDetailPage() {
       setDeployments(mine);
       return mine;
     } catch (err) {
-      if (err instanceof ApiError && err.status === 401) {
-        logout();
-        router.replace("/auth");
-        return [];
-      }
-
       setError(
         err instanceof ApiError
           ? err.message
@@ -117,8 +104,7 @@ export default function ProjectDetailPage() {
     }
   };
 
-  // Poll while the latest deployment is still in flight, stop once it
-  // resolves to success/failed.
+  // Poll while the latest deployment is still in flight.
   const pollUntilSettled = () => {
     if (pollRef.current) clearInterval(pollRef.current);
     pollRef.current = setInterval(async () => {
@@ -131,13 +117,6 @@ export default function ProjectDetailPage() {
   };
 
   useEffect(() => {
-    if (loading) return;
-
-    if (!token) {
-      router.replace("/auth");
-      return;
-    }
-
     if (!projectId) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- standard fetch-on-mount; data comes from an external API, not derivable from existing state
     loadProject();
@@ -146,11 +125,13 @@ export default function ProjectDetailPage() {
         pollUntilSettled();
       }
     });
+    refreshRef.current = setInterval(loadDeployments, 30000);
     return () => {
       if (pollRef.current) clearInterval(pollRef.current);
+      if (refreshRef.current) clearInterval(refreshRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projectId, loading, token]);
+  }, [projectId]);
 
   const handleDeploy = async () => {
     setDeploying(true);
@@ -160,14 +141,10 @@ export default function ProjectDetailPage() {
       await loadDeployments();
       pollUntilSettled();
     } catch (err) {
-      if (err instanceof ApiError && err.status === 401) {
-        logout();
-        router.replace("/auth");
-        return;
-      }
-
       setError(
-        err instanceof ApiError
+        err instanceof ApiError && err.status === 429
+          ? "The shared demo has reached its deployment limit. Try again after the 24-hour allowance resets."
+          : err instanceof ApiError
           ? `Couldn't start the deployment: ${err.message}`
           : "Couldn't reach the API. Check that the backend is running."
       );
@@ -181,12 +158,6 @@ export default function ProjectDetailPage() {
       await api.deleteProject(projectId);
       router.push("/");
     } catch (err) {
-      if (err instanceof ApiError && err.status === 401) {
-        logout();
-        router.replace("/auth");
-        return;
-      }
-
       setError(
         err instanceof ApiError
           ? `Couldn't delete the project: ${err.message}`
@@ -200,15 +171,6 @@ export default function ProjectDetailPage() {
   const { running, stopped, history } = deployments
     ? groupDeployments(deployments)
     : { running: [], stopped: [], history: [] };
-
-  if (loading || !token) {
-    return (
-      <div className="mx-auto max-w-3xl px-4 py-10">
-        <div className="mb-6 h-5 w-24 animate-pulse rounded bg-surface" />
-        <div className="h-24 animate-pulse rounded-lg border border-border bg-surface" />
-      </div>
-    );
-  }
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
@@ -271,7 +233,9 @@ export default function ProjectDetailPage() {
             Latest deployment
           </p>
           <DeploymentStepper status={latest.Status} />
-          {latest.Status === "success" && latest.Port && (
+          {latest.Status === "success" &&
+            latest.ContainerRunning &&
+            latest.Port && (
             <a
               href={deployedAppUrl(latest.Port)}
               target="_blank"
@@ -286,6 +250,12 @@ export default function ProjectDetailPage() {
             <p className="mt-5 text-xs text-error">
               The deployment failed. Check that the repository is public (or
               accessible) and contains a valid Dockerfile.
+            </p>
+          )}
+          {latest.Status === "expired" && (
+            <p className="mt-5 text-xs text-muted">
+              This demo deployment reached its one-hour limit and its resources
+              were removed.
             </p>
           )}
         </div>

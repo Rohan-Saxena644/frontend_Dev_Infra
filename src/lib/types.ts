@@ -6,17 +6,12 @@ export interface Project {
   UserID?: number;
 }
 
-export interface User {
-  id: number;
-  email: string;
-}
-
-export interface AuthResponse {
-  token: string;
-  user: User;
-}
-
-export type DeploymentStatus = "queued" | "running" | "success" | "failed";
+export type DeploymentStatus =
+  | "queued"
+  | "running"
+  | "success"
+  | "failed"
+  | "expired";
 
 export interface Deployment {
   ID: number;
