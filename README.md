@@ -7,7 +7,7 @@ Next.js + TypeScript + Tailwind dashboard for the DevInfra deployment platform.
 ```bash
 npm install
 cp .env.local.example .env.local
-# edit .env.local to point NEXT_PUBLIC_API_URL at your backend
+# edit .env.local to point API_URL at your backend
 npm run dev
 ```
 
@@ -24,3 +24,15 @@ Open http://localhost:3000
 
 - `/` — project list + create dialog
 - `/projects/[id]` — project detail, deploy button, live deployment stepper, deployment history
+
+## Production environment
+
+Set these variables in Vercel:
+
+```env
+API_URL=http://your-ec2-address:8080
+NEXT_PUBLIC_DEPLOYMENT_HOST=your-ec2-address
+```
+
+Browser requests use the same-origin `/api` path. Next.js proxies them to the
+backend so the HTTPS Vercel page does not fetch the HTTP EC2 endpoint directly.

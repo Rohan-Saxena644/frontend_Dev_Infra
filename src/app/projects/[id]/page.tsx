@@ -163,6 +163,7 @@ export default function ProjectDetailPage() {
           ? `Couldn't delete the project: ${err.message}`
           : "Couldn't reach the API. Check that the backend is running."
       );
+      throw err;
     }
   };
 
