@@ -27,7 +27,10 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   });
 
   if (!res.ok) {
-    const text = await res.text().catch(() => "");
+    const contentType = res.headers.get("content-type") ?? "";
+    const text = contentType.includes("text/plain")
+      ? await res.text().catch(() => "")
+      : "";
     throw new ApiError(
       text || `Request to ${path} failed with status ${res.status}`,
       res.status
